@@ -55,11 +55,6 @@ class AbstractConnection extends AbstractChannel
     protected $server_properties;
 
     /**
-     * @var string
-     */
-    protected $heartbeat;
-
-    /**
      * @var array
      */
     protected $mechanisms;
@@ -123,6 +118,11 @@ class AbstractConnection extends AbstractChannel
      * @var int
      */
     protected $frame_max = 131072;
+
+    /**
+     * @var int
+     */
+    protected $heartbeat;
 
     /**
      * constructor parameters for clone
@@ -190,7 +190,8 @@ class AbstractConnection extends AbstractChannel
         $login_method = "AMQPLAIN",
         $login_response = null,
         $locale = "en_US",
-        AbstractIO $io
+        AbstractIO $io,
+        $heartbeat = 0
     ) {
         // save the params for the use of __clone
         $this->construct_params = func_get_args();
@@ -202,6 +203,7 @@ class AbstractConnection extends AbstractChannel
         $this->login_response = $login_response;
         $this->locale = $locale;
         $this->io = $io;
+        $this->heartbeat = $heartbeat;
 
         if ($user && $password) {
             $this->login_response = new AMQPWriter();
@@ -600,19 +602,27 @@ class AbstractConnection extends AbstractChannel
     {
         while (true) {
             list($frame_type, $frame_channel, $payload) = $this->wait_frame($timeout);
-            if ($frame_channel == $channel_id) {
-                return array($frame_type, $payload);
-            }
 
-            // Not the channel we were looking for.  Queue this frame
-            //for later, when the other channel is looking for frames.
-            array_push($this->channels[$frame_channel]->frame_queue, array($frame_type, $payload));
+            if ($frame_channel === 0 && $frame_type === 8) {
+                // skip heartbeat frames
+                continue;
+                
+            } else {
 
-            // If we just queued up a method for channel 0 (the Connection
-            // itself) it's probably a close method in reaction to some
-            // error, so deal with it right away.
-            if (($frame_type == 1) && ($frame_channel == 0)) {
-                $this->wait();
+                if ($frame_channel == $channel_id) {
+                    return array($frame_type, $payload);
+                }
+
+                // Not the channel we were looking for.  Queue this frame
+                //for later, when the other channel is looking for frames.
+                array_push($this->channels[$frame_channel]->frame_queue, array($frame_type, $payload));
+
+                // If we just queued up a method for channel 0 (the Connection
+                // itself) it's probably a close method in reaction to some
+                // error, so deal with it right away.
+                if (($frame_type == 1) && ($frame_channel == 0)) {
+                    $this->wait();
+                }
             }
         }
     }
@@ -879,8 +889,12 @@ class AbstractConnection extends AbstractChannel
             $this->frame_max = $v;
         }
 
-        $this->heartbeat = $args->read_short();
-        $this->x_tune_ok($this->channel_max, $this->frame_max, 0);
+        // use server proposed value if not set
+        if ($this->heartbeat === NULL) {
+            $this->heartbeat = $args->read_short();
+        }
+        
+        $this->x_tune_ok($this->channel_max, $this->frame_max, $this->heartbeat);
     }
 
 
