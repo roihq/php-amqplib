@@ -133,7 +133,7 @@ class StreamIO extends AbstractIO
         $read = 0;
 
         while ($read < $n && !feof($this->sock) && (false !== ($buf = fread($this->sock, $n - $read)))) {
-            $this->read_heartbeat();
+            $this->check_heartbeat();
 
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
@@ -191,7 +191,7 @@ class StreamIO extends AbstractIO
 
         
 
-    public function read_heartbeat()
+    public function check_heartbeat()
     {
         // ignore unless heartbeat interval is set
         if ($this->heartbeat !== 0 && $this->last_read && $this->last_write) {
