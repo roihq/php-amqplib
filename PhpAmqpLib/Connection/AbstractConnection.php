@@ -374,7 +374,7 @@ class AbstractConnection extends AbstractChannel
             MiscHelper::debug_msg("closing socket");
         }
 
-        if (!is_null($this->getIO()) && !is_null($this->getIO()->get_socket())) {
+        if (!is_null($this->getIO())) {
             $this->getIO()->close();
         }
     }
