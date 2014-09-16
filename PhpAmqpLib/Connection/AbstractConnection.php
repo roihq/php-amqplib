@@ -290,12 +290,8 @@ class AbstractConnection extends AbstractChannel
      */
     public function reconnect()
     {
-        try {
-            // Try to close the AMQP connection
-            $this->safeClose();
-        } catch (\Exception $e) { /* Ignore closing errors */
-        }
-
+        // Try to close the AMQP connection
+        $this->safeClose();
         // Reconnect the socket/stream then AMQP
         $this->getIO()->reconnect();
         $this->setIsConnected(false); // getIO can initiate the connection setting via LazyConnection, set it here to be sure
@@ -328,19 +324,12 @@ class AbstractConnection extends AbstractChannel
      */
     protected function safeClose()
     {
-        // Set the connection status in case the server has gone away
-        $this->setIsConnected(false);
-        $this->closeChannels();
-
-        if (isset($this->input) && $this->input) {
-            // close() always tries to connect to the server to shutdown
-            // the connection. If the server has gone away, it will
-            // throw an error in the connection class, so catch it
-            // and shutdown quietly
-            try {
+        try {
+            if (isset($this->input) && $this->input) {
                 $this->close();
-            } catch (\Exception $e) {
             }
+        } catch (\Exception $e) {
+
         }
     }
 
@@ -365,13 +354,29 @@ class AbstractConnection extends AbstractChannel
 
 
 
+    protected function close_input()
+    {
+        if ($this->debug) {
+            MiscHelper::debug_msg("closing input");
+        }
+
+        if (!is_null($this->input)) {
+            $this->input->close();
+            $this->input = null;
+        }
+    }
+
+
+
     protected function close_socket()
     {
         if ($this->debug) {
             MiscHelper::debug_msg("closing socket");
         }
 
-        $this->getIO()->close();
+        if (!is_null($this->getIO()) && !is_null($this->getIO()->get_socket())) {
+            $this->getIO()->close();
+        }
     }
 
 
@@ -390,11 +395,8 @@ class AbstractConnection extends AbstractChannel
 
     protected function do_close()
     {
-        if (isset($this->input) && $this->input) {
-            $this->input->close();
-            $this->input = null;
-        }
-
+        $this->setIsConnected(false);
+        $this->close_input();
         $this->close_socket();
     }
 
@@ -719,7 +721,7 @@ class AbstractConnection extends AbstractChannel
      */
     protected function x_close_ok()
     {
-        $this->send_method_frame(array(10, 61));
+        $this->send_method_frame(array(10, 51));
         $this->do_close();
     }
 
