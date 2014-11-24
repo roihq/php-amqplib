@@ -115,7 +115,16 @@ class StreamIO extends AbstractIO
             throw new AMQPIOException('Timeout could not be set');
         }
 
-        stream_set_blocking($this->sock, 1);
+        // php cannot capture signals while streams are blocking
+        if ($this->canDispatchPcntlSignal) {
+            stream_set_blocking($this->sock, 0);
+            stream_set_write_buffer($this->sock, 0);
+            if (function_exists('stream_set_read_buffer')) {
+                stream_set_read_buffer($this->sock, 0);    
+            }
+        } else {
+            stream_set_blocking($this->sock, 1);
+        }
 
         if ($this->keepalive) {
             $this->enable_keepalive();
@@ -146,6 +155,8 @@ class StreamIO extends AbstractIO
 
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
+                    // prevent cpu from being consumed while waiting
+                    $this->select(1, null);
                     pcntl_signal_dispatch();
                 }
                 continue;
@@ -182,21 +193,18 @@ class StreamIO extends AbstractIO
                 throw new AMQPRuntimeException('Broken pipe or closed connection');
             }
 
-            if (false === ($written = @fwrite($this->sock, $data))) {
-                throw new AMQPRuntimeException('Error sending data');
-            }
-
-            if ($written === 0) {
-                throw new AMQPRuntimeException('Broken pipe or closed connection');
-            }
-
             if ($this->timed_out()) {
                 throw new AMQPTimeoutException('Error sending data. Socket connection timed out');
             }
 
+            if (false === ($written = @fwrite($this->sock, $data))) {
+                throw new AMQPRuntimeException('Error sending data');
+            }
+
             $len = $len - $written;
             if ($len > 0) {
-                $data = mb_substr($data, 0 - $len, 0 - $len, 'ASCII');
+                $data = mb_substr($data, (0 - $len), null, 'ASCII');
+                continue;
             } else {
                 $this->last_write = microtime(true);
                 break;
@@ -276,7 +284,12 @@ class StreamIO extends AbstractIO
         $write = null;
         $except = null;
 
-        return stream_select($read, $write, $except, $sec, $usec);
+        $result = false;
+        set_error_handler(function() { return true; }, E_WARNING);
+        $result = stream_select($read, $write, $except, $sec, $usec);
+        restore_error_handler();
+
+        return $result;
     }
 
     /**
