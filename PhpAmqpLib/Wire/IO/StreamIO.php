@@ -120,10 +120,10 @@ class StreamIO extends AbstractIO
             var_dump($this->canDispatchPcntlSignal);
             echo 'true';
             stream_set_blocking($this->sock, 0);
-            stream_set_write_buffer($this->sock, 0);
+            @stream_set_write_buffer($this->sock, 0);
             if (function_exists('stream_set_read_buffer')) {
                 echo 'true';
-                stream_set_read_buffer($this->sock, 0);    
+                @stream_set_read_buffer($this->sock, 0);    
             }
         } else {
             stream_set_blocking($this->sock, 1);
