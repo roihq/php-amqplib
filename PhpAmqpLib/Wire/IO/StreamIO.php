@@ -121,10 +121,10 @@ class StreamIO extends AbstractIO
             echo 'true';
             stream_set_blocking($this->sock, 0);
             @stream_set_write_buffer($this->sock, 0);
-            if (function_exists('stream_set_read_buffer')) {
+            //if (function_exists('stream_set_read_buffer')) {
                 echo 'true';
                 @stream_set_read_buffer($this->sock, 0);    
-            }
+            //}
         } else {
             stream_set_blocking($this->sock, 1);
         }
@@ -294,7 +294,7 @@ class StreamIO extends AbstractIO
 
         $result = false;
         set_error_handler(function() { return true; }, E_WARNING);
-        $result = stream_select($read, $write, $except, $sec, $usec);
+        $result = @stream_select($read, $write, $except, $sec, $usec);
         restore_error_handler();
 
         return $result;
