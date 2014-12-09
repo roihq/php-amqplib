@@ -845,13 +845,19 @@ class AMQPChannel extends AbstractChannel
      * Ends a queue consumer
      *
      * @param string $consumer_tag
-     * @param bool $nowait
+     * @param bool   $nowait   Tell the broker to not send a basic.cancel_ok
+     * @param bool   $noreturn Return immediately and allow basic.cancel_ok to be queued
      * @return mixed
      */
-    public function basic_cancel($consumer_tag, $nowait = false)
+    public function basic_cancel($consumer_tag, $nowait = false, $noreturn = false)
     {
         list($class_id, $method_id, $args) = $this->protocolWriter->basicCancel($consumer_tag, $nowait);
         $this->send_method_frame(array($class_id, $method_id), $args);
+
+        if ($nowait || $noreturn) {
+            unset($this->callbacks[$consumer_tag]);
+            return $consumer_tag;
+        }
 
         return $this->wait(array(
             $this->waitHelper->get_wait('basic.cancel_ok')
@@ -878,6 +884,7 @@ class AMQPChannel extends AbstractChannel
     {
         $consumer_tag = $args->read_shortstr();
         unset($this->callbacks[$consumer_tag]);
+        return $consumer_tag;
     }
 
     /**
