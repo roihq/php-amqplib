@@ -115,7 +115,20 @@ class StreamIO extends AbstractIO
             throw new AMQPIOException('Timeout could not be set');
         }
 
-        stream_set_blocking($this->sock, 1);
+        // php cannot capture signals while streams are blocking
+        if ($this->canDispatchPcntlSignal) {
+            var_dump($this->canDispatchPcntlSignal);
+            echo 'true';
+            stream_set_blocking($this->sock, 0);
+            stream_set_write_buffer($this->sock, 0);
+            if (function_exists('stream_set_read_buffer')) {
+                echo 'true';
+                stream_set_read_buffer($this->sock, 0);    
+            }
+        } else {
+            stream_set_blocking($this->sock, 1);
+        }
+
 
         if ($this->keepalive) {
             $this->enable_keepalive();
@@ -146,6 +159,9 @@ class StreamIO extends AbstractIO
 
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
+                    // prevent cpu from being consumed while waiting
+                    echo 'wait';
+                    $this->select(null, null);
                     pcntl_signal_dispatch();
                 }
                 continue;
