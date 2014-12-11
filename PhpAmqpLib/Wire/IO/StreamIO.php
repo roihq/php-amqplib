@@ -193,6 +193,10 @@ class StreamIO extends AbstractIO
                 throw new AMQPRuntimeException('Broken pipe or closed connection');
             }
 
+            if ($this->timed_out()) {
+                throw new AMQPTimeoutException('Error sending data. Socket connection timed out');
+            }
+
             if (false === ($written = @fwrite($this->sock, $data))) {
                 throw new AMQPRuntimeException('Error sending data');
             }
@@ -201,13 +205,9 @@ class StreamIO extends AbstractIO
                 throw new AMQPRuntimeException('Broken pipe or closed connection');
             }
 
-            if ($this->timed_out()) {
-                throw new AMQPTimeoutException('Error sending data. Socket connection timed out');
-            }
-
             $len = $len - $written;
             if ($len > 0) {
-                $data = mb_substr($data, 0 - $len, 0 - $len, 'ASCII');
+                $data = mb_substr($data, (0 - $len), null, 'ASCII');
             } else {
                 $this->last_write = microtime(true);
                 break;
