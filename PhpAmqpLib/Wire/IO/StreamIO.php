@@ -345,13 +345,13 @@ class StreamIO extends AbstractIO
             }
 
             
-            $args = [
+            $args = array(
                 'written1' => $written,
                 'written2' => (mb_strlen($written, 'ASCII')),
                 'len' => $len,
                 'rem' => null,
                 'drem' => null
-            ];
+            );
             
             $len = $len - $written;
             $args['rem'] = $len;
