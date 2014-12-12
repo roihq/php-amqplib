@@ -117,10 +117,18 @@ class AMQPReader extends AbstractClient
         if ($this->timeout == 0) {
             return;
         }
+        //
+        if ($this->timeout == 0) {
+            //echo '====BLOCKING====';
+            $result = $this->io->select(null, null);
+        } else {
+            // wait ..
+            //echo '====NOTBLOCKING='.$this->timeout.'===';
+            list($sec, $usec) = MiscHelper::splitSecondsMicroseconds($this->timeout);
+            $result = $this->io->select($sec, $usec);
+        }
 
-        // wait ..
-        list($sec, $usec) = MiscHelper::splitSecondsMicroseconds($this->timeout);
-        $result = $this->io->select($sec, $usec);
+        
 
         if ($result === false) {
             throw new AMQPRuntimeException('A network error occured while awaiting for incoming data');

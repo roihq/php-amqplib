@@ -1056,6 +1056,7 @@ class AMQPChannel extends AbstractChannel
             $ticket
         );
         if (false === isset($this->publish_cache[$cache_key])) {
+            //echo 'ok1';
             $ticket = $this->getTicket($ticket);
             list($class_id, $method_id, $args) = $this->protocolWriter->basicPublish(
                 $ticket,
@@ -1064,16 +1065,19 @@ class AMQPChannel extends AbstractChannel
                 $mandatory,
                 $immediate
             );
-
+            //echo 'ok2';
             $pkt = $this->prepare_method_frame(array($class_id, $method_id), $args);
+            //echo 'ok3';
             $this->publish_cache[$cache_key] = $pkt->getvalue();
+            //echo 'ok4';
             if (count($this->publish_cache) > $this->publish_cache_max_size) {
+                //echo 'ok5';
                 reset($this->publish_cache);
                 $old_key = key($this->publish_cache);
                 unset($this->publish_cache[$old_key]);
             }
         }
-
+        //echo 'ok6';
         return $this->publish_cache[$cache_key];
     }
 
@@ -1096,8 +1100,9 @@ class AMQPChannel extends AbstractChannel
         $ticket = null
     ) {
         $pkt = new AMQPWriter();
+        //echo 'in1';
         $pkt->write($this->pre_publish($exchange, $routing_key, $mandatory, $immediate, $ticket));
-
+        //echo 'in2';
         $this->connection->send_content(
             $this->channel_id,
             60,
@@ -1107,10 +1112,13 @@ class AMQPChannel extends AbstractChannel
             $msg->body,
             $pkt
         );
-
+        //echo 'in3';
         if ($this->next_delivery_tag > 0) {
+            //echo 'in4';
             $this->published_messages[$this->next_delivery_tag] = $msg;
+            //echo 'in5';
             $this->next_delivery_tag = bcadd($this->next_delivery_tag, '1');
+            //echo 'in6';
         }
     }
 

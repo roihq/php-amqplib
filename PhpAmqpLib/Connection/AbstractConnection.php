@@ -324,6 +324,8 @@ class AbstractConnection extends AbstractChannel
      */
     public function write($data)
     {
+        //echo 'write1';
+        //echo strlen($data);
         if ($this->debug) {
             MiscHelper::debug_msg(sprintf(
                 '< [hex]: %s%s',
@@ -333,6 +335,7 @@ class AbstractConnection extends AbstractChannel
         }
 
         $this->getIO()->write($data);
+        //echo 'write2';
     }
 
     protected function do_close()
@@ -369,7 +372,9 @@ class AbstractConnection extends AbstractChannel
     public function send_content($channel, $class_id, $weight, $body_size, $packed_properties, $body, $pkt = null)
     {
         $this->prepare_content($channel, $class_id, $weight, $body_size, $packed_properties, $body, $pkt);
+        //echo 'send1';
         $this->write($pkt->getvalue());
+        //echo 'send2';
     }
 
     /**
