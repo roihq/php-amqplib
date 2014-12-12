@@ -201,10 +201,6 @@ class StreamIO extends AbstractIO
                 throw new AMQPRuntimeException('Error sending data');
             }
 
-            if ($written === 0) {
-                throw new AMQPRuntimeException('Broken pipe or closed connection');
-            }
-
             $len = $len - $written;
             if ($len > 0) {
                 $data = mb_substr($data, (0 - $len), null, 'ASCII');
