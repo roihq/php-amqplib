@@ -1,5 +1,5 @@
 test:
-	vendor/bin/phpunit --debug
+	vendor/bin/phpunit --debug --repeat 10 ./tests/Functional/FileTransferTest.php
 .PHONY: benchmark
 benchmark:
 	@echo "Publishing 4000 msgs with 1KB of content:"
