@@ -26,8 +26,7 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
     protected $msg_body;
 
 
-
-    public function setUp()
+    public function testSendFile()
     {
         $this->conn = new AMQPConnection(HOST, PORT, USER, PASS, VHOST);
         $this->ch = $this->conn->channel();
@@ -35,12 +34,7 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
         $this->ch->exchange_declare($this->exchange_name, 'direct', false, false, false);
         list($this->queue_name, ,) = $this->ch->queue_declare();
         $this->ch->queue_bind($this->queue_name, $this->exchange_name, $this->queue_name);
-    }
 
-
-
-    public function testSendFile()
-    {
         $this->msg_body = file_get_contents(__DIR__ . '/fixtures/data_1mb.bin');
 
         $msg = new AMQPMessage($this->msg_body, array('delivery_mode' => 1));
