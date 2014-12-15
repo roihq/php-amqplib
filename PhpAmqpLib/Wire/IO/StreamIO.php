@@ -118,9 +118,9 @@ class StreamIO extends AbstractIO
         // php cannot capture signals while streams are blocking
         if ($this->canDispatchPcntlSignal) {
             stream_set_blocking($this->sock, 0);
-            stream_set_write_buffer($this->sock, 0);
+            //stream_set_write_buffer($this->sock, 0);
             if (function_exists('stream_set_read_buffer')) {
-                stream_set_read_buffer($this->sock, 0);    
+                //stream_set_read_buffer($this->sock, 0);    
             }
         } else {
             stream_set_blocking($this->sock, 1);
