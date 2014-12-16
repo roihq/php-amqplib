@@ -79,6 +79,16 @@ class StreamIO extends AbstractIO
      */
     public function connect()
     {
+        if (get_magic_quotes_runtime()) {
+            echo '----get_magic_quotes_runtime_true----';
+        } else {
+            echo '----get_magic_quotes_runtime_false----';
+        }
+        echo ini_get("magic_quotes_gpc");
+        echo ini_get("magic_quotes_runtime");
+        echo ini_get("magic_quotes_sybase");
+        echo '-|-';
+
         $errstr = $errno = null;
 
         if ($this->context) {
@@ -88,7 +98,8 @@ class StreamIO extends AbstractIO
                 $errno,
                 $errstr,
                 $this->connection_timeout,
-                STREAM_CLIENT_CONNECT,
+                STREAM_CLIENT_CONNECT |
+                STREAM_CLIENT_ASYNC_CONNECT,
                 $this->context
             );
         } else {
@@ -98,7 +109,8 @@ class StreamIO extends AbstractIO
                 $errno,
                 $errstr,
                 $this->connection_timeout,
-                STREAM_CLIENT_CONNECT
+                STREAM_CLIENT_CONNECT |
+                STREAM_CLIENT_ASYNC_CONNECT
             );
         }
 
@@ -117,15 +129,19 @@ class StreamIO extends AbstractIO
 
         // php cannot capture signals while streams are blocking
         if ($this->canDispatchPcntlSignal) {
-            stream_set_blocking($this->sock, 0);
-            stream_set_write_buffer($this->sock, 0);
+            echo '_dispatch_';
+            $blocking = stream_set_blocking($this->sock, 0);
+            echo ($blocking === true) ? '_blocking_true' : '_blocking_false';
+            $write = stream_set_write_buffer($this->sock, 0);
+            echo ($write === 0) ? '_write_buffer_true' : '_write_buffer_false';
             if (function_exists('stream_set_read_buffer')) {
-                stream_set_read_buffer($this->sock, 0);    
+                $read = stream_set_read_buffer($this->sock, 0);
+                echo ($read === 0) ? '_read_buffer_true' : '_read_buffer_false';
             }
         } else {
             stream_set_blocking($this->sock, 1);
         }
-
+        
         if ($this->keepalive) {
             $this->enable_keepalive();
         }
