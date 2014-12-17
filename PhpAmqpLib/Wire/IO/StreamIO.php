@@ -172,7 +172,7 @@ class StreamIO extends AbstractIO
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
                     // prevent cpu from being consumed while waiting
-                    $this->select(1, null);
+                    $this->select(1, 200000);
                     pcntl_signal_dispatch();
                 }
                 continue;
