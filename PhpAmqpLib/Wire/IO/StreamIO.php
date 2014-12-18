@@ -93,7 +93,7 @@ class StreamIO extends AbstractIO
 
         if ($this->context) {
             $remote = sprintf('ssl://%s:%s', $this->host, $this->port);
-            $this->sock = @stream_socket_client(
+            $this->sock = stream_socket_client(
                 $remote,
                 $errno,
                 $errstr,
@@ -104,7 +104,7 @@ class StreamIO extends AbstractIO
             );
         } else {
             $remote = sprintf('tcp://%s:%s', $this->host, $this->port);
-            $this->sock = @stream_socket_client(
+            $this->sock = stream_socket_client(
                 $remote,
                 $errno,
                 $errstr,
@@ -171,6 +171,7 @@ class StreamIO extends AbstractIO
 
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
+                    echo '--dispatch--';
                     // prevent cpu from being consumed while waiting
                     $this->select(1, 200000);
                     pcntl_signal_dispatch();
@@ -206,14 +207,17 @@ class StreamIO extends AbstractIO
         $len = mb_strlen($data, 'ASCII');
         while (true) {
             if (is_null($this->sock)) {
+                echo '111111111111111111111';
                 throw new AMQPRuntimeException('Broken pipe or closed connection');
             }
 
             if ($this->timed_out()) {
+                echo '222222222222222222222';
                 throw new AMQPTimeoutException('Error sending data. Socket connection timed out');
             }
 
-            if (false === ($written = @fwrite($this->sock, $data, $len))) {
+            if (false === ($written = fwrite($this->sock, $data, $len))) {
+                echo '333333333333333333333';
                 throw new AMQPRuntimeException('Error sending data');
             }
 
