@@ -173,7 +173,8 @@ class StreamIO extends AbstractIO
                 if ($this->canDispatchPcntlSignal) {
                     echo '--dispatch--';
                     // prevent cpu from being consumed while waiting
-                    $this->select(1, 200000);
+                    //$this->select(1, 200000);
+                    sleep(1);
                     pcntl_signal_dispatch();
                 }
                 continue;
@@ -206,6 +207,7 @@ class StreamIO extends AbstractIO
     {
         $len = mb_strlen($data, 'ASCII');
         while (true) {
+            echo '.w.';
             if (is_null($this->sock)) {
                 echo '111111111111111111111';
                 throw new AMQPRuntimeException('Broken pipe or closed connection');
