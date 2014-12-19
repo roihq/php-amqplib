@@ -109,6 +109,10 @@ class StreamIO extends AbstractIO
             throw new AMQPIOException("Timeout could not be set");
         }
 
+        // bugs.php.net/41631 5.4.33
+        // bugs.php.net/65137 5.4.34
+
+
         // php cannot capture signals while streams are blocking
         if ($this->canDispatchPcntlSignal) {
             stream_set_blocking($this->sock, 0);
@@ -147,7 +151,8 @@ class StreamIO extends AbstractIO
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
                     // prevent cpu from being consumed while waiting
-                    $this->select(null, null);
+                    //$this->select(null, null);
+                    sleep(1);
                     pcntl_signal_dispatch();
                 }
                 continue;
@@ -182,7 +187,7 @@ class StreamIO extends AbstractIO
             }
 
             if ($written === 0) {
-                throw new AMQPRuntimeException("Broken pipe or closed connection");
+                //throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
 
             if ($this->timed_out()) {
