@@ -177,12 +177,15 @@ class StreamIO extends AbstractIO
     public function write($data)
     {
         $len = mb_strlen($data, 'ASCII');
+        
         while (true) {
             if (is_null($this->sock)) {
                 throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
 
-            if (false === ($written = @fwrite($this->sock, $data))) {
+            if (false === ($written = fwrite($this->sock, $data))) {
+                
+
                 throw new AMQPRuntimeException("Error sending data");
             }
 
@@ -193,7 +196,7 @@ class StreamIO extends AbstractIO
             if ($this->timed_out()) {
                 throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
             }
-
+            /*
             $len = $len - $written;
             if ($len > 0) {
                 $data = mb_substr($data, (0 - $len), null, 'ASCII');
@@ -202,6 +205,19 @@ class StreamIO extends AbstractIO
                 $this->last_write = microtime(true);
                 break;
             }
+            */
+           
+            if ($written === mb_strlen($data, 'ASCII')) {
+                $this->last_write = microtime(true);
+                echo '-full-';
+                break;
+            } else {
+                $data = mb_substr($data, 0, $written, 'ASCII');
+                echo '-part-';
+                continue;
+            }
+
+
         }
     }
 
