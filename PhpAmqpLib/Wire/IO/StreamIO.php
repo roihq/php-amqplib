@@ -265,10 +265,10 @@ class StreamIO extends AbstractIO
         $write = null;
         $except = null;
 
-        $result = false;
-        set_error_handler(function() { return true; }, E_WARNING);
+        //$result = false;
+        //set_error_handler(function() { return true; }, E_WARNING);
         $result = stream_select($read, $write, $except, $sec, $usec);
-        restore_error_handler();
+        //restore_error_handler();
 
         return $result;
     }
