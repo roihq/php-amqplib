@@ -68,7 +68,7 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
     public function process_msg($msg)
     {
         echo '+++++++++++++++++++++++';
-        var_dump($msg);
+        //var_dump($msg);
         $delivery_info = $msg->delivery_info;
 
         $delivery_info['channel']->basic_ack($delivery_info['delivery_tag']);
