@@ -42,6 +42,7 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
     public function testSendFile()
     {
         $this->msg_body = file_get_contents(__DIR__ . '/fixtures/data_1mb.bin');
+        //$this->msg_body = 'yes';
 
         $msg = new AMQPMessage($this->msg_body, array('delivery_mode' => 1));
 
@@ -66,6 +67,8 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
 
     public function process_msg($msg)
     {
+        echo '+++++++++++++++++++++++';
+        var_dump($msg);
         $delivery_info = $msg->delivery_info;
 
         $delivery_info['channel']->basic_ack($delivery_info['delivery_tag']);
