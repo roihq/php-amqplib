@@ -146,6 +146,7 @@ class StreamIO extends AbstractIO
         $read = 0;
 
         while ($read < $n && !feof($this->sock) && (false !== ($buf = fread($this->sock, $n - $read)))) {
+            echo '+r';
             $this->check_heartbeat();
 
             if ($buf === '') {
@@ -179,6 +180,7 @@ class StreamIO extends AbstractIO
         $len = mb_strlen($data, 'ASCII');
         
         while (true) {
+            echo '+w';
             if (is_null($this->sock)) {
                 throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
