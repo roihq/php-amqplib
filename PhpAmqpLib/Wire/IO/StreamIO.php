@@ -199,7 +199,7 @@ class StreamIO extends AbstractIO
             /*
             $len = $len - $written;
             if ($len > 0) {
-                $data = mb_substr($data, (0 - $len), null, 'ASCII');
+                $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
                 continue;
             } else {
                 $this->last_write = microtime(true);
@@ -212,7 +212,7 @@ class StreamIO extends AbstractIO
                 echo '-full-';
                 break;
             } else {
-                $data = mb_substr($data, 0, $written, 'ASCII');
+                $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
                 echo '-part-';
                 continue;
             }
