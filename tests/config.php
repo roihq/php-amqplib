@@ -1,6 +1,6 @@
 <?php
 
-define('HOST', 'dev-dhavelock.istockphoto.com');
+define('HOST', 'localhost');
 define('PORT', 5672);
 define('USER', 'phpamqplib');
 define('PASS', 'phpamqplib_password');

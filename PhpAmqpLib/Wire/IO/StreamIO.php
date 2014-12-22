@@ -211,11 +211,11 @@ class StreamIO extends AbstractIO
            
             if ($written === mb_strlen($data, 'ASCII')) {
                 $this->last_write = microtime(true);
-                echo '-full-';
+                echo '-full.'.$written.'-';
                 break;
             } else {
                 $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
-                echo '-part-';
+                echo '-part.'.$written.'-';
                 continue;
             }
 
