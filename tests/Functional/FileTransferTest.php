@@ -76,6 +76,19 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
         }
         ob_flush();
         flush();
+
+        if ($this->ch) {
+            $this->ch->exchange_delete($this->exchange_name);
+            $this->ch->close();
+            ob_flush();
+            flush();
+        }
+
+        if ($this->conn) {
+            $this->conn->close();
+            ob_flush();
+            flush();
+        }
     }
 
 
@@ -90,7 +103,11 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
         $delivery_info = $msg->delivery_info;
 
         $delivery_info['channel']->basic_ack($delivery_info['delivery_tag']);
+        ob_flush();
+        flush();
         $delivery_info['channel']->basic_cancel($delivery_info['consumer_tag']);
+        ob_flush();
+        flush();
 
         $this->assertEquals($this->msg_body, $msg->body);
         ob_flush();
@@ -98,16 +115,10 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
     }
 
 
-
+    /*
     public function tearDown()
     {
-        if ($this->ch) {
-            $this->ch->exchange_delete($this->exchange_name);
-            $this->ch->close();
-        }
-
-        if ($this->conn) {
-            $this->conn->close();
-        }
+        
     }
+    */
 }
