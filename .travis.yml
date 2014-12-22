@@ -12,6 +12,7 @@ matrix:
     - php: hhvm
 
 before_script:
+  - echo 'output_buffering = Off' >> ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/travis.ini
   - composer install --dev --prefer-source
   - ./bin/ci/before_build.sh
 
