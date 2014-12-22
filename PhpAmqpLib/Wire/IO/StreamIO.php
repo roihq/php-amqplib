@@ -147,12 +147,17 @@ class StreamIO extends AbstractIO
 
         while ($read < $n && !feof($this->sock) && (false !== ($buf = fread($this->sock, $n - $read)))) {
             echo '+r';
+            ob_flush();
+            flush();
             $this->check_heartbeat();
 
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
                     // prevent cpu from being consumed while waiting
                     //$this->select(null, null);
+                    echo '+b';
+                    ob_flush();
+                    flush();
                     sleep(1);
                     pcntl_signal_dispatch();
                 }
@@ -181,6 +186,8 @@ class StreamIO extends AbstractIO
         
         while (true) {
             echo '+w';
+            ob_flush();
+            flush();
             if (is_null($this->sock)) {
                 throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
@@ -212,10 +219,14 @@ class StreamIO extends AbstractIO
             if ($written === mb_strlen($data, 'ASCII')) {
                 $this->last_write = microtime(true);
                 echo '-full.'.$written.'-';
+                ob_flush();
+                flush();
                 break;
             } else {
                 $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
                 echo '-part.'.$written.'-';
+                ob_flush();
+                flush();
                 continue;
             }
 

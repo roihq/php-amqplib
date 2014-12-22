@@ -488,6 +488,8 @@ class AbstractConnection extends AbstractChannel
             $pkt->write($payload);
 
             $pkt->write_octet(0xCE);
+            ob_flush();
+            flush();
         }
 
         return $pkt;
