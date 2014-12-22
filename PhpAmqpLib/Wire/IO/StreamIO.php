@@ -191,6 +191,22 @@ class StreamIO extends AbstractIO
 
     public function write($data)
     {
+        echo 'SOCKET_EWOULDBLOCK='.SOCKET_EWOULDBLOCK;
+        echo 'SOCKET_EAGAIN='.SOCKET_EAGAIN;
+
+        //fwrite(): send of 8192 bytes failed with errno=11 Resource temporarily unavailable
+        //fread(): unable to read from socket [35]: Resource temporarily unavailable
+        //clearstatcache
+        //
+        //EAGAIN = 'Resource temporarily unavailable';
+        //EWOULDBLOCK
+        //EINTR
+        //MAX_RETRIES
+        //
+        //SOCKET_EAGAIN
+        //
+        //SOCKET_ENOBUFS
+
         $len = mb_strlen($data, 'ASCII');
         
         while (true) {
@@ -273,7 +289,7 @@ class StreamIO extends AbstractIO
     {
         $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
 
-        return true;
+        //return true;
     }
 
         
