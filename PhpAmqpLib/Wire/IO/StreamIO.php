@@ -287,8 +287,9 @@ class StreamIO extends AbstractIO
 
     public function error($errno, $errstr, $errfile, $errline, $errcontext = null)
     {
+        echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
         $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
-
+        var_dump($this->last_error);
         //return true;
     }
 
