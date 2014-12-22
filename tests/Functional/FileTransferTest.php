@@ -29,6 +29,13 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
+        parent::setUp();
+    }
+
+
+
+    public function testSendFile()
+    {
         $this->conn = new AMQPConnection(HOST, PORT, USER, PASS, VHOST);
         $this->ch = $this->conn->channel();
 
@@ -37,12 +44,7 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
         $this->ch->queue_bind($this->queue_name, $this->exchange_name, $this->queue_name);
         ob_flush();
         flush();
-    }
 
-
-
-    public function testSendFile()
-    {
         $this->msg_body = file_get_contents(__DIR__ . '/fixtures/data_1mb.bin');
         ob_flush();
         flush();
