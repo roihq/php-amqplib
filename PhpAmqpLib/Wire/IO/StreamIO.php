@@ -101,17 +101,26 @@ class StreamIO extends AbstractIO
     {
         $errstr = $errno = null;
 
+        $flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT;
+
         if ($this->context) {
             $remote = sprintf('ssl://%s:%s', $this->host, $this->port);
-            $this->sock = @stream_socket_client($remote, $errno, $errstr, $this->connection_timeout, STREAM_CLIENT_CONNECT, $this->context);
+            $this->sock = stream_socket_client($remote, $errno, $errstr, $this->connection_timeout, $flags, $this->context);
         } else {
             $remote = sprintf('tcp://%s:%s', $this->host, $this->port);
-            $this->sock = @stream_socket_client($remote, $errno, $errstr, $this->connection_timeout, STREAM_CLIENT_CONNECT);
+            $this->sock = stream_socket_client($remote, $errno, $errstr, $this->connection_timeout, $flags);
         }
 
-        if (!$this->sock) {
+        if (false === $this->sock) {
             throw new AMQPRuntimeException("Error Connecting to server($errno): $errstr ");
         }
+
+        if (false === stream_socket_get_name($this->sock, true)) {
+            throw new AMQPRuntimeException("Connection refused($errno): $errstr ");
+        }
+
+
+
 
         list($sec, $uSec) = MiscHelper::splitSecondsMicroseconds($this->read_write_timeout);
         if (!stream_set_timeout($this->sock, $sec, $uSec)) {
@@ -297,7 +306,7 @@ class StreamIO extends AbstractIO
     {
         echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
         $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
-        if ($this->last_error['errno'] === EAGAIN) {
+        if ($this->last_error['errno'] === SOCKET_EAGAIN) {
             '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++';
         }
         echo 'readdy='.$this->last_error['errno'];
