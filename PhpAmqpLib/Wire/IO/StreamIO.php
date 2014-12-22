@@ -46,6 +46,8 @@ class StreamIO extends AbstractIO
      */
     protected $heartbeat;
 
+    
+
     /**
      * @var float
      */
@@ -55,6 +57,13 @@ class StreamIO extends AbstractIO
      * @var float
      */
     protected $last_write;
+
+    /**
+     * @var array
+     */
+    protected $last_error;
+
+
 
     /**
      * @var resource
@@ -147,7 +156,7 @@ class StreamIO extends AbstractIO
 
         while ($read < $n && !feof($this->sock) && (false !== ($buf = fread($this->sock, $n - $read)))) {
             echo '+r';
-            ob_flush();
+            @ob_flush();
             flush();
             $this->check_heartbeat();
 
@@ -156,7 +165,7 @@ class StreamIO extends AbstractIO
                     // prevent cpu from being consumed while waiting
                     //$this->select(null, null);
                     echo '+b';
-                    ob_flush();
+                    @ob_flush();
                     flush();
                     sleep(1);
                     pcntl_signal_dispatch();
@@ -188,22 +197,48 @@ class StreamIO extends AbstractIO
             echo '+w';
             ob_flush();
             flush();
-            if (is_null($this->sock)) {
-                throw new AMQPRuntimeException("Broken pipe or closed connection");
-            }
+            
 
-            if (false === ($written = fwrite($this->sock, $data))) {
-                
+            
+        
+        
 
-                throw new AMQPRuntimeException("Error sending data");
-            }
 
-            if ($written === 0) {
+            if (!is_resource($this->sock)) {
+                echo '--------broken-pipe';
                 //throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
 
+            $meta = stream_get_meta_data($this->sock);
+
+            set_error_handler(array($this, 'error'));
+            $written = fwrite($this->sock, $data);
+            restore_error_handler();
+
+
+            if (false === $written) {
+                var_dump($this->last_error);
+                var_dump($meta);
+                echo '--------broken-data';
+                //throw new AMQPRuntimeException("Error sending data");
+            }
+
+            if ($written === 0 && feof($this->sock)) {
+                var_dump($this->last_error);
+                var_dump($meta);
+                echo '--------broken-write';
+                //throw new AMQPRuntimeException("Broken pipe or closed connection");
+            }
+
+
+
+
+
             if ($this->timed_out()) {
-                throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
+                var_dump($this->last_error);
+                var_dump($meta);
+                echo '--------timed-out';
+                //throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
             }
             /*
             $len = $len - $written;
@@ -219,19 +254,26 @@ class StreamIO extends AbstractIO
             if ($written === mb_strlen($data, 'ASCII')) {
                 $this->last_write = microtime(true);
                 echo '-full.'.$written.'-';
-                ob_flush();
+                @ob_flush();
                 flush();
                 break;
             } else {
                 $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
                 echo '-part.'.$written.'-';
-                ob_flush();
+                @ob_flush();
                 flush();
                 continue;
             }
 
 
         }
+    }
+
+    public function error($errno, $errstr, $errfile, $errline, $errcontext = null)
+    {
+        $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
+
+        return true;
     }
 
         
