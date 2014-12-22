@@ -215,7 +215,15 @@ class StreamIO extends AbstractIO
             flush();
             
 
-            
+            /*
+            if (socket_last_error($socket) == SOCKET_EAGAIN or            
+
+                    socket_last_error($socket) == SOCKET_EWOULDBLOCK or
+
+                    socket_last_error($socket) == SOCKET_EINPROGRESS) 
+
+                {
+                }*/
         
         
 
@@ -289,6 +297,12 @@ class StreamIO extends AbstractIO
     {
         echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
         $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
+        if ($this->last_error['errno'] === EAGAIN) {
+            '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++';
+        }
+        echo 'readdy='.$this->last_error['errno'];
+
+
         var_dump($this->last_error);
         //return true;
     }
@@ -353,10 +367,10 @@ class StreamIO extends AbstractIO
         $write = null;
         $except = null;
 
-        //$result = false;
-        //set_error_handler(function() { return true; }, E_WARNING);
+        $result = false;
+        set_error_handler(array($this, 'error'));
         $result = stream_select($read, $write, $except, $sec, $usec);
-        //restore_error_handler();
+        restore_error_handler();
 
         return $result;
     }
