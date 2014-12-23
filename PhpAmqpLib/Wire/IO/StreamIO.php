@@ -363,8 +363,8 @@ class StreamIO extends AbstractIO
 
     public function flush()
     {
-        //@ob_flush();
-        //flush();
+        @ob_flush();
+        flush();
     }
 
     public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null)
