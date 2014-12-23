@@ -87,6 +87,11 @@ class StreamIO extends AbstractIO
         $this->heartbeat = $heartbeat;
         $this->canDispatchPcntlSignal = extension_loaded('pcntl') && function_exists('pcntl_signal_dispatch')
             && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true);
+
+
+        if () {
+
+        }
     }
 
 
@@ -114,7 +119,7 @@ class StreamIO extends AbstractIO
             $errstr,
             $this->connection_timeout,
             STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
-            $this->context
+            $this->context ?: stream_context_create()
         );
 
         if (false === $this->sock) {
@@ -136,7 +141,7 @@ class StreamIO extends AbstractIO
                 )
             );
         }
-
+        var_dump(stream_socket_get_name($this->sock, true));
 
 
 
@@ -182,6 +187,13 @@ class StreamIO extends AbstractIO
         $read = 0;
 
         while ($read < $n && !feof($this->sock) && (false !== ($buf = fread($this->sock, $n - $read)))) {
+            
+
+
+
+
+
+
             echo '+r';
             @ob_flush();
             flush();
