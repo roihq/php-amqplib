@@ -185,16 +185,24 @@ class StreamIO extends AbstractIO
         $read = 0;
 
         while (true) {
+            echo '+r';
+            @ob_flush();
+            flush();
+
             $this->check_heartbeat();
 
-            if ($read < $n) {
-                continue;
-            } else {
+            if (!($read < $n)) {
+
+                echo '--------done-read';
+                @ob_flush();
+                flush();
                 break;
             }
 
             if (feof($this->sock)) {
                 echo '--------broken-read-1';
+                @ob_flush();
+                flush();
                 break;
             }
 
@@ -204,11 +212,15 @@ class StreamIO extends AbstractIO
 
             if (false === $buf) {
                 echo '--------broken-read-data';
+                @ob_flush();
+                flush();
                 break;
             }
 
             if ($buf === 0 && feof($this->sock)) {
                 echo '--------broken-read-2';
+                @ob_flush();
+                flush();
                 break;
             }
 
@@ -217,9 +229,7 @@ class StreamIO extends AbstractIO
 
 
 
-            echo '+r';
-            @ob_flush();
-            flush();
+            
             
 
             if ($buf === '') {
