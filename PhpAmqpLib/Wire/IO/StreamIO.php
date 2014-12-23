@@ -203,9 +203,6 @@ class StreamIO extends AbstractIO
                 break;
             }
 
-            $meta = stream_get_meta_data($this->sock);
-            var_dump($meta);
-            $this->flush();
 
             set_error_handler(array($this, 'error_handler'));
             $buf = fread($this->sock, ($n - $read));
@@ -366,8 +363,8 @@ class StreamIO extends AbstractIO
 
     public function flush()
     {
-        @ob_flush();
-        flush();
+        //@ob_flush();
+        //flush();
     }
 
     public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null)
