@@ -186,23 +186,20 @@ class StreamIO extends AbstractIO
 
         while (true) {
             echo '+r';
-            @ob_flush();
-            flush();
+            $this->flush();
 
             $this->check_heartbeat();
 
             if (!($read < $n)) {
 
                 echo '--------done-read';
-                @ob_flush();
-                flush();
+                $this->flush();
                 break;
             }
 
             if (feof($this->sock)) {
                 echo '--------broken-read-1';
-                @ob_flush();
-                flush();
+                $this->flush();
                 break;
             }
 
@@ -212,15 +209,13 @@ class StreamIO extends AbstractIO
 
             if (false === $buf) {
                 echo '--------broken-read-data';
-                @ob_flush();
-                flush();
+                $this->flush();
                 break;
             }
 
             if ($buf === 0 && feof($this->sock)) {
                 echo '--------broken-read-2';
-                @ob_flush();
-                flush();
+                $this->flush();
                 break;
             }
 
@@ -237,8 +232,7 @@ class StreamIO extends AbstractIO
                     // prevent cpu from being consumed while waiting
                     
                     echo '+b';
-                    @ob_flush();
-                    flush();
+                    $this->flush();
                     $this->select(null, null);
                     //sleep(1);
                     pcntl_signal_dispatch();
@@ -284,8 +278,7 @@ class StreamIO extends AbstractIO
         
         while (true) {
             echo '+w';
-            ob_flush();
-            flush();
+            $this->flush();
             
 
             /*
@@ -354,19 +347,23 @@ class StreamIO extends AbstractIO
             if ($written === mb_strlen($data, 'ASCII')) {
                 $this->last_write = microtime(true);
                 echo '-full.'.$written.'-';
-                @ob_flush();
-                flush();
+                $this->flush();
                 break;
             } else {
                 $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
                 echo '-part.'.$written.'-';
-                @ob_flush();
-                flush();
+                $this->flush();
                 continue;
             }
 
 
         }
+    }
+
+    public function flush()
+    {
+        @ob_flush();
+        flush();
     }
 
     public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null)

@@ -42,20 +42,16 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
         $this->ch->exchange_declare($this->exchange_name, 'direct', false, false, false);
         list($this->queue_name, ,) = $this->ch->queue_declare();
         $this->ch->queue_bind($this->queue_name, $this->exchange_name, $this->queue_name);
-        @ob_flush();
-        flush();
+        $this->flush();
 
         $this->msg_body = file_get_contents(__DIR__ . '/fixtures/data_1mb.bin');
-        @ob_flush();
-        flush();
+        $this->flush();
         //$this->msg_body = 'yes';
 
         $msg = new AMQPMessage($this->msg_body, array('delivery_mode' => 1));
-        @ob_flush();
-        flush();
+        $this->flush();
         $this->ch->basic_publish($msg, $this->exchange_name, $this->queue_name);
-        @ob_flush();
-        flush();
+        $this->flush();
 
 
         $this->ch->basic_consume(
@@ -67,27 +63,22 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
             false,
             array($this, 'process_msg')
         );
-        @ob_flush();
-        flush();
+        $this->flush();
         while (count($this->ch->callbacks)) {
             $this->ch->wait();
-            ob_flush();
-            flush();
+            $this->flush();
         }
-        @ob_flush();
-        flush();
+        $this->flush();
 
         if ($this->ch) {
             $this->ch->exchange_delete($this->exchange_name);
             $this->ch->close();
-            @ob_flush();
-            flush();
+            $this->flush();
         }
 
         if ($this->conn) {
             $this->conn->close();
-            @ob_flush();
-            flush();
+            $this->flush();
         }
     }
 
@@ -95,23 +86,26 @@ class FileTransferTest extends \PHPUnit_Framework_TestCase
 
     public function process_msg($msg)
     {
-        @ob_flush();
-        flush();
+        $this->flush();
 
         echo '+++++++++++++++++++++++';
         //var_dump($msg);
         $delivery_info = $msg->delivery_info;
 
         $delivery_info['channel']->basic_ack($delivery_info['delivery_tag']);
-        @ob_flush();
-        flush();
+        $this->flush();
         $delivery_info['channel']->basic_cancel($delivery_info['consumer_tag']);
-        @ob_flush();
-        flush();
+        $this->flush();
 
         $this->assertEquals($this->msg_body, $msg->body);
-        @ob_flush();
-        flush();
+        $this->flush();
+        
+    }
+
+    public function flush()
+    {
+        //@ob_flush();
+        //flush();
     }
 
 
