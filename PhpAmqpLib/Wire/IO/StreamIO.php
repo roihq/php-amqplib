@@ -225,8 +225,8 @@ class StreamIO extends AbstractIO
 
     public function write($data)
     {
-        echo 'SOCKET_EWOULDBLOCK='.SOCKET_EWOULDBLOCK;
-        echo 'SOCKET_EAGAIN='.SOCKET_EAGAIN;
+        //echo 'SOCKET_EWOULDBLOCK='.SOCKET_EWOULDBLOCK;
+        //echo 'SOCKET_EAGAIN='.SOCKET_EAGAIN;
 
         //fwrite(): send of 8192 bytes failed with errno=11 Resource temporarily unavailable
         //fread(): unable to read from socket [35]: Resource temporarily unavailable
@@ -332,7 +332,11 @@ class StreamIO extends AbstractIO
 
     public function error($errno, $errstr, $errfile, $errline, $errcontext = null)
     {
+        //8     E_NOTICE
+
+
         echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+        var_dump(error_get_last());
         $e = socket_last_error();
         var_dump($e);
         var_dump(socket_strerror($e));
