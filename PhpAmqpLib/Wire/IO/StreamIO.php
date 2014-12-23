@@ -108,6 +108,8 @@ class StreamIO extends AbstractIO
         
         $errstr = $errno = null;
 
+        set_error_handler(array($this, 'error_handler'));
+        
         $this->sock = stream_socket_client(
             $remote,
             $errno,
@@ -116,6 +118,8 @@ class StreamIO extends AbstractIO
             STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
             $this->context ?: stream_context_create()
         );
+        
+        restore_error_handler();
 
         if (false === $this->sock) {
             throw new AMQPRuntimeException(
@@ -180,10 +184,35 @@ class StreamIO extends AbstractIO
         $res = '';
         $read = 0;
 
-        while ($read < $n && !feof($this->sock) && (false !== ($buf = fread($this->sock, $n - $read)))) {
+        while (true) {
+            $this->check_heartbeat();
+
+            if ($read < $n) {
+                continue;
+            } else {
+                break;
+            }
+
+            if (feof($this->sock)) {
+                echo '--------broken-read-1';
+                break;
+            }
+
+            set_error_handler(array($this, 'error_handler'));
+            $buf = fread($this->sock, ($n - $read));
+            restore_error_handler();
+
+            if (false === $buf) {
+                echo '--------broken-read-data';
+                break;
+            }
+
+            if ($buf === 0 && feof($this->sock)) {
+                echo '--------broken-read-2';
+                break;
+            }
+
             
-
-
 
 
 
@@ -191,7 +220,7 @@ class StreamIO extends AbstractIO
             echo '+r';
             @ob_flush();
             flush();
-            $this->check_heartbeat();
+            
 
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
@@ -269,7 +298,7 @@ class StreamIO extends AbstractIO
 
             
 
-            set_error_handler(array($this, 'error'));
+            set_error_handler(array($this, 'error_handler'));
             $written = fwrite($this->sock, $data);
             restore_error_handler();
 
@@ -337,7 +366,6 @@ class StreamIO extends AbstractIO
 
 
         echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-        var_dump(error_get_last());
         $e = socket_last_error();
         var_dump($e);
         var_dump(socket_strerror($e));
@@ -413,7 +441,7 @@ class StreamIO extends AbstractIO
         $except = null;
 
         $result = false;
-        set_error_handler(array($this, 'error'));
+        set_error_handler(array($this, 'error_handler'));
         $result = stream_select($read, $write, $except, $sec, $usec);
         restore_error_handler();
 
