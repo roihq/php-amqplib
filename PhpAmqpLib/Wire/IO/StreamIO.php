@@ -359,7 +359,7 @@ class StreamIO extends AbstractIO
         }
     }
 
-    public function error($errno, $errstr, $errfile, $errline, $errcontext = null)
+    public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null)
     {
         // "fwrite(): send of 8192 bytes failed with errno=11 Resource temporarily unavailable"
         // 8     E_NOTICE
