@@ -131,8 +131,7 @@ class StreamIO extends AbstractIO
             throw new AMQPRuntimeException(
                 sprintf(
                     'Connection refused(%s): %s ', 
-                    $errno,
-                    $errstr
+                    $remote
                 )
             );
         }
@@ -197,11 +196,12 @@ class StreamIO extends AbstractIO
             if ($buf === '') {
                 if ($this->canDispatchPcntlSignal) {
                     // prevent cpu from being consumed while waiting
-                    //$this->select(null, null);
+                    
                     echo '+b';
                     @ob_flush();
                     flush();
-                    sleep(1);
+                    $this->select(null, null);
+                    //sleep(1);
                     pcntl_signal_dispatch();
                 }
                 continue;
@@ -332,7 +332,8 @@ class StreamIO extends AbstractIO
 
     public function error($errno, $errstr, $errfile, $errline, $errcontext = null)
     {
-        //8     E_NOTICE
+        // "fwrite(): send of 8192 bytes failed with errno=11 Resource temporarily unavailable"
+        // 8     E_NOTICE
 
 
         echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
