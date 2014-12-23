@@ -150,7 +150,7 @@ class StreamIO extends AbstractIO
 
         // bugs.php.net/41631 5.4.33
         // bugs.php.net/65137 5.4.34
-
+        // 5.4.36
 
         // php cannot capture signals while streams are blocking
         if ($this->canDispatchPcntlSignal) {
@@ -202,6 +202,10 @@ class StreamIO extends AbstractIO
                 $this->flush();
                 break;
             }
+
+            $meta = stream_get_meta_data($this->sock);
+            var_dump($meta);
+            $this->flush();
 
             set_error_handler(array($this, 'error_handler'));
             $buf = fread($this->sock, ($n - $read));
@@ -389,7 +393,7 @@ class StreamIO extends AbstractIO
 
 
         var_dump($this->last_error);
-        return false;
+        return;
     }
 
         
