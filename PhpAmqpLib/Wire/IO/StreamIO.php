@@ -87,11 +87,6 @@ class StreamIO extends AbstractIO
         $this->heartbeat = $heartbeat;
         $this->canDispatchPcntlSignal = extension_loaded('pcntl') && function_exists('pcntl_signal_dispatch')
             && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true);
-
-
-        if () {
-
-        }
     }
 
 
