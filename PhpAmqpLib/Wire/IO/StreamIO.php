@@ -99,24 +99,42 @@ class StreamIO extends AbstractIO
      */
     public function connect()
     {
+        $remote = sprintf(
+            '%s://%s:%s', 
+            (is_null($this->context)) ? 'tcp' : 'ssl',
+            $this->host,
+            $this->port
+        );
+        
         $errstr = $errno = null;
 
-        $flags = STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT;
-
-        if ($this->context) {
-            $remote = sprintf('ssl://%s:%s', $this->host, $this->port);
-            $this->sock = stream_socket_client($remote, $errno, $errstr, $this->connection_timeout, $flags, $this->context);
-        } else {
-            $remote = sprintf('tcp://%s:%s', $this->host, $this->port);
-            $this->sock = stream_socket_client($remote, $errno, $errstr, $this->connection_timeout, $flags);
-        }
+        $this->sock = stream_socket_client(
+            $remote,
+            $errno,
+            $errstr,
+            $this->connection_timeout,
+            STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
+            $this->context
+        );
 
         if (false === $this->sock) {
-            throw new AMQPRuntimeException("Error Connecting to server($errno): $errstr ");
+            throw new AMQPRuntimeException(
+                sprintf(
+                    'Error Connecting to server(%s): %s ', 
+                    $errno,
+                    $errstr
+                )
+            );
         }
 
         if (false === stream_socket_get_name($this->sock, true)) {
-            throw new AMQPRuntimeException("Connection refused($errno): $errstr ");
+            throw new AMQPRuntimeException(
+                sprintf(
+                    'Connection refused(%s): %s ', 
+                    $errno,
+                    $errstr
+                )
+            );
         }
 
 
@@ -242,7 +260,7 @@ class StreamIO extends AbstractIO
                 //throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
 
-            $meta = stream_get_meta_data($this->sock);
+            
 
             set_error_handler(array($this, 'error'));
             $written = fwrite($this->sock, $data);
@@ -250,6 +268,7 @@ class StreamIO extends AbstractIO
 
 
             if (false === $written) {
+                $meta = stream_get_meta_data($this->sock);
                 var_dump($this->last_error);
                 var_dump($meta);
                 echo '--------broken-data';
@@ -257,6 +276,7 @@ class StreamIO extends AbstractIO
             }
 
             if ($written === 0 && feof($this->sock)) {
+                $meta = stream_get_meta_data($this->sock);
                 var_dump($this->last_error);
                 var_dump($meta);
                 echo '--------broken-write';
@@ -268,6 +288,7 @@ class StreamIO extends AbstractIO
 
 
             if ($this->timed_out()) {
+                $meta = stream_get_meta_data($this->sock);
                 var_dump($this->last_error);
                 var_dump($meta);
                 echo '--------timed-out';
@@ -305,6 +326,9 @@ class StreamIO extends AbstractIO
     public function error($errno, $errstr, $errfile, $errline, $errcontext = null)
     {
         echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+        $e = socket_last_error();
+        var_dump($e);
+        var_dump(socket_strerror($e));
         $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
         if ($this->last_error['errno'] === SOCKET_EAGAIN) {
             '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++';
