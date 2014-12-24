@@ -14,6 +14,11 @@ class StreamIO extends AbstractIO
     /**
      * @var string
      */
+    protected $protocol;
+
+    /**
+     * @var string
+     */
     protected $host;
 
     /**
@@ -46,8 +51,6 @@ class StreamIO extends AbstractIO
      */
     protected $heartbeat;
 
-    
-
     /**
      * @var float
      */
@@ -63,8 +66,6 @@ class StreamIO extends AbstractIO
      */
     protected $last_error;
 
-
-
     /**
      * @var resource
      */
@@ -74,6 +75,11 @@ class StreamIO extends AbstractIO
      * @var bool
      */
     private $canDispatchPcntlSignal;
+
+    /**
+     * @var bool
+     */
+    private $canSelectNull;
 
 
     public function __construct($host, $port, $connection_timeout, $read_write_timeout, $context = null, $keepalive = false, $heartbeat = 0)
@@ -87,9 +93,20 @@ class StreamIO extends AbstractIO
         $this->heartbeat = $heartbeat;
         $this->canDispatchPcntlSignal = extension_loaded('pcntl') && function_exists('pcntl_signal_dispatch')
             && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true);
+       
+        if (is_null($this->context)) {
+            $this->protocol = 'tcp';
+            $this->context = stream_context_create();
+        } else {
+            $this->protocol = 'ssl';
+        }
+
+        // 5.4.36
+        // bugs.php.net/41631 5.4.33
+        // bugs.php.net/65137 5.4.34
+
+        $this->canSelectNull = true;
     }
-
-
 
     /**
      * Setup the stream connection
@@ -99,14 +116,14 @@ class StreamIO extends AbstractIO
      */
     public function connect()
     {
+        $errstr = $errno = null;
+
         $remote = sprintf(
             '%s://%s:%s', 
-            (is_null($this->context)) ? 'tcp' : 'ssl',
+            $this->protocol,
             $this->host,
             $this->port
         );
-        
-        $errstr = $errno = null;
 
         set_error_handler(array($this, 'error_handler'));
         
@@ -116,7 +133,7 @@ class StreamIO extends AbstractIO
             $errstr,
             $this->connection_timeout,
             STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
-            $this->context ?: stream_context_create()
+            $this->context
         );
         
         restore_error_handler();
@@ -134,24 +151,18 @@ class StreamIO extends AbstractIO
         if (false === stream_socket_get_name($this->sock, true)) {
             throw new AMQPRuntimeException(
                 sprintf(
-                    'Connection refused(%s): %s ', 
+                    'Connection refused: %s ', 
                     $remote
                 )
             );
         }
-        //var_dump(stream_socket_get_name($this->sock, true));
-
-
 
         list($sec, $uSec) = MiscHelper::splitSecondsMicroseconds($this->read_write_timeout);
         if (!stream_set_timeout($this->sock, $sec, $uSec)) {
-            throw new AMQPIOException("Timeout could not be set");
+            throw new AMQPIOException('Timeout could not be set');
         }
 
-        // bugs.php.net/41631 5.4.33
-        // bugs.php.net/65137 5.4.34
-        // 5.4.36
-
+        
         // php cannot capture signals while streams are blocking
         if ($this->canDispatchPcntlSignal) {
             stream_set_blocking($this->sock, 0);
@@ -188,7 +199,7 @@ class StreamIO extends AbstractIO
             $this->check_heartbeat();
 
             if (!is_resource($this->sock) || feof($this->sock)) {
-                throw new AMQPRuntimeException("Broken pipe or closed connection");
+                throw new AMQPRuntimeException('Broken pipe or closed connection');
             }
 
             set_error_handler(array($this, 'error_handler'));
@@ -196,18 +207,17 @@ class StreamIO extends AbstractIO
             restore_error_handler();
 
             if ($buffer === false) {
-                throw new AMQPRuntimeException("Error receiving data");
+                throw new AMQPRuntimeException('Error receiving data');
             }
 
             if ($buffer === '') {
                 if ($this->canDispatchPcntlSignal) {
                     // prevent cpu from being consumed while waiting
-                    
-                    //echo '+b';
-                    //$this->flush();
-                    //sleep(1);
-                    
-                    $this->select(null, null);
+                    if ($this->canSelectNull) {
+                        $this->select(null, null);
+                    } else {
+                        usleep(200000);
+                    }
                     pcntl_signal_dispatch();
                 }
                 continue;
@@ -217,16 +227,19 @@ class StreamIO extends AbstractIO
             $data .= $buffer;
         }
 
-        if (mb_strlen($data, 'ASCII') != $len) {
-            throw new AMQPRuntimeException("Error reading data. Received " .
-                mb_strlen($data, 'ASCII') . " instead of expected $len bytes");
+        if (mb_strlen($data, 'ASCII') !== $len) {
+            throw new AMQPRuntimeException(
+                sprintf(
+                    'Error reading data. Received %s instead of expected %s bytes', 
+                    mb_strlen($data, 'ASCII'),
+                    $len
+                )
+            );
         }
 
         $this->last_read = microtime(true);
         return $data;
     }
-
-
 
     public function write($data)
     {
@@ -234,11 +247,9 @@ class StreamIO extends AbstractIO
         $len = mb_strlen($data, 'ASCII');
         
         while ($written < $len) {
-            echo '+w'.$written.'-'.$len.'+';
-            $this->flush();
 
             if (!is_resource($this->sock)) {
-                throw new AMQPRuntimeException("Broken pipe or closed connection");
+                throw new AMQPRuntimeException('Broken pipe or closed connection');
             }
 
             set_error_handler(array($this, 'error_handler'));
@@ -246,21 +257,15 @@ class StreamIO extends AbstractIO
             restore_error_handler();
 
             if ($buffer === false) {
-                echo '+w--BUFFERFLASE--+';
-                $this->flush();
-                throw new AMQPRuntimeException("Error sending data");
+                throw new AMQPRuntimeException('Error sending data');
             }
 
             if ($buffer === 0 && feof($this->sock)) {
-                echo '+w--BORKEN--+';
-                $this->flush();
-                throw new AMQPRuntimeException("Broken pipe or closed connection");
+                throw new AMQPRuntimeException('Broken pipe or closed connection');
             }
 
             if ($this->timed_out()) {
-                echo '+w--TIMEOUT--+';
-                $this->flush();
-                throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
+                throw new AMQPTimeoutException('Error sending data. Socket connection timed out');
             }
 
             $written += $buffer;
@@ -277,28 +282,19 @@ class StreamIO extends AbstractIO
 
         // fwrite warning that stream isn't ready
         if (strstr($errstr, 'Resource temporarily unavailable')) {
-             echo 'TTTTTTTTTTTTTTTTTTTTTTTTTTTTT';
+             // it's allowed to retry
              return;
         }
 
         // stream_select warning that it has been interrupted by a signal
         if (strstr($errstr, 'Interrupted system call')) {
-             echo 'SSSSSSSSSSSSSSSSSSSSSSSSSSSSS';
+             // it's allowed while processing signals
              return;
         }
 
-        echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-        var_dump($this->last_error);
-        
-        return;
+        // raise all other issues to exceptions
+        throw new \ErrorException($errstr, 0, $errno, $errfile, $errline);
     }
-
-    public function flush()
-    {
-        //@ob_flush();
-        //flush();
-    }
-
 
 
 
