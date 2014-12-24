@@ -476,7 +476,7 @@ class AbstractConnection extends AbstractChannel
         $pkt->write_octet(0xCE);
 
         while ($body) {
-            $bodyStart = ($this->frame_max - 20);//8
+            $bodyStart = ($this->frame_max - 8);
             echo 's='.$bodyStart;
             $payload = mb_substr($body, 0, $bodyStart, 'ASCII');
             echo ' p='.mb_strlen($payload, 'ASCII');
