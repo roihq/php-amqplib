@@ -234,6 +234,8 @@ class StreamIO extends AbstractIO
         $len = mb_strlen($data, 'ASCII');
         
         while ($written < $len) {
+            echo '+w'.$written.'-'.$len.'+';
+            $this->flush();
 
             if (!is_resource($this->sock)) {
                 throw new AMQPRuntimeException("Broken pipe or closed connection");
@@ -244,14 +246,20 @@ class StreamIO extends AbstractIO
             restore_error_handler();
 
             if ($buffer === false) {
+                echo '+w--BUFFERFLASE--+';
+                $this->flush();
                 throw new AMQPRuntimeException("Error sending data");
             }
 
             if ($buffer === 0 && feof($this->sock)) {
+                echo '+w--BORKEN--+';
+                $this->flush();
                 throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
 
             if ($this->timed_out()) {
+                echo '+w--TIMEOUT--+';
+                $this->flush();
                 throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
             }
 
