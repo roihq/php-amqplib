@@ -373,6 +373,11 @@ class StreamIO extends AbstractIO
         $block_read  = "fread(): unable to read from socket [35]: Resource temporarily unavailable";
         $block_write = "fwrite(): send of 8192 bytes failed with errno=11 Resource temporarily unavailable";
 
+        if (preg_match('/^fwrite(): send of (\d+) bytes failed with errno=(\d+) Resource temporarily unavailable$/', $errstr, $match)) {
+            echo '&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&';
+            var_dump($match);
+        }
+
 
         // 
         // 8     E_NOTICE
