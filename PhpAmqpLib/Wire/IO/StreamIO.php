@@ -259,48 +259,23 @@ class StreamIO extends AbstractIO
 
     public function write($data)
     {
-        //echo 'SOCKET_EWOULDBLOCK='.SOCKET_EWOULDBLOCK;
-        //echo 'SOCKET_EAGAIN='.SOCKET_EAGAIN;
-
-        //fwrite(): send of 8192 bytes failed with errno=11 Resource temporarily unavailable
-        //fread(): unable to read from socket [35]: Resource temporarily unavailable
-        //clearstatcache
-        //
-        //EAGAIN = 'Resource temporarily unavailable';
-        //EWOULDBLOCK
-        //EINTR
-        //MAX_RETRIES
-        //
-        //SOCKET_EAGAIN
-        //
-        //SOCKET_ENOBUFS
-
-        $len = mb_strlen($data, 'ASCII');
+        $written = 0;
         
-        while (true) {
+        while ($written !== mb_strlen($data, 'ASCII')) {
+            
+
             echo '+w';
             $this->flush();
             
 
-            /*
-            if (socket_last_error($socket) == SOCKET_EAGAIN or            
-
-                    socket_last_error($socket) == SOCKET_EWOULDBLOCK or
-
-                    socket_last_error($socket) == SOCKET_EINPROGRESS) 
-
-                {
-                }*/
-        
-        
+                   
 
 
             if (!is_resource($this->sock)) {
                 echo '--------broken-pipe';
-                //throw new AMQPRuntimeException("Broken pipe or closed connection");
+                $this->flush();
+                throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
-
-            
 
             set_error_handler(array($this, 'error_handler'));
             $written = fwrite($this->sock, $data);
@@ -308,31 +283,30 @@ class StreamIO extends AbstractIO
 
 
             if (false === $written) {
+                echo '--------broken-data';
                 $meta = stream_get_meta_data($this->sock);
                 var_dump($this->last_error);
                 var_dump($meta);
-                echo '--------broken-data';
-                //throw new AMQPRuntimeException("Error sending data");
+                $this->flush();
+                throw new AMQPRuntimeException("Error sending data");
             }
 
             if ($written === 0 && feof($this->sock)) {
+                echo '--------broken-write';
                 $meta = stream_get_meta_data($this->sock);
                 var_dump($this->last_error);
                 var_dump($meta);
-                echo '--------broken-write';
-                //throw new AMQPRuntimeException("Broken pipe or closed connection");
+                $this->flush();
+                throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
 
-
-
-
-
             if ($this->timed_out()) {
+                echo '--------timed-out';
                 $meta = stream_get_meta_data($this->sock);
                 var_dump($this->last_error);
                 var_dump($meta);
-                echo '--------timed-out';
-                //throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
+                $this->flush();
+                throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
             }
             /*
             $len = $len - $written;
@@ -345,20 +319,34 @@ class StreamIO extends AbstractIO
             }
             */
            
-            if ($written === mb_strlen($data, 'ASCII')) {
-                $this->last_write = microtime(true);
-                echo '-full.'.$written.'-';
-                $this->flush();
-                break;
-            } else {
-                $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
-                echo '-part.'.$written.'-';
-                $this->flush();
-                continue;
-            }
 
-
+            $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
+            echo '-part.'.$written.'-';
+            $this->flush();
         }
+        $this->last_write = microtime(true);
+    }
+
+    public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null)
+    {
+        $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
+
+        // fwrite warning that stream isn't ready
+        if (strstr($errstr, 'Resource temporarily unavailable')) {
+             echo 'TTTTTTTTTTTTTTTTTTTTTTTTTTTTT';
+             return;
+        }
+
+        // stream_select warning that it has been interrupted by a signal
+        if (strstr($errstr, 'Interrupted system call')) {
+             echo 'SSSSSSSSSSSSSSSSSSSSSSSSSSSSS';
+             return;
+        }
+
+        echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+        var_dump($this->last_error);
+        
+        return;
     }
 
     public function flush()
@@ -367,38 +355,8 @@ class StreamIO extends AbstractIO
         flush();
     }
 
-    public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null)
-    {
-        
-        $block_read  = "fread(): unable to read from socket [35]: Resource temporarily unavailable";
-        $block_write = "fwrite(): send of 8192 bytes failed with errno=11 Resource temporarily unavailable";
-
-        if (preg_match('/^fwrite(): send of (\d+) bytes failed with errno=(\d+) Resource temporarily unavailable$/', $errstr, $match)) {
-            echo '&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&';
-            var_dump($match);
-        }
 
 
-        // 
-        // 8     E_NOTICE
-
-
-        echo 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-        $e = socket_last_error();
-        var_dump($e);
-        var_dump(socket_strerror($e));
-        $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
-        if ($this->last_error['errno'] === SOCKET_EAGAIN) {
-            '++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++';
-        }
-        echo 'readdy='.$this->last_error['errno'];
-
-
-        var_dump($this->last_error);
-        return;
-    }
-
-        
 
     public function check_heartbeat()
     {
