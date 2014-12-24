@@ -255,7 +255,7 @@ class StreamIO extends AbstractIO
                 throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
             }
 
-            $written += mb_strlen($buffer, 'ASCII');
+            $written += $buffer;
             $data = mb_substr($data, $buffer, mb_strlen($data, 'ASCII') - $buffer, 'ASCII');
         }
 
