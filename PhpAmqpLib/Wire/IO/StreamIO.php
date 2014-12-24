@@ -179,23 +179,18 @@ class StreamIO extends AbstractIO
 
 
 
-    public function read($n)
+    public function read($len)
     {
-        $res = '';
         $read = 0;
+        $data = '';
 
-        while (true) {
+        while ($read < $len) {
             echo '+r';
             $this->flush();
 
             $this->check_heartbeat();
 
-            if (!($read < $n)) {
-
-                echo '--------done-read';
-                $this->flush();
-                break;
-            }
+            
 
             if (feof($this->sock)) {
                 echo '--------broken-read-1';
@@ -203,18 +198,24 @@ class StreamIO extends AbstractIO
                 break;
             }
 
+            if (!is_resource($this->sock)) {
+                echo '--------broken-pipe-read';
+                $this->flush();
+                break;
+            }
+
 
             set_error_handler(array($this, 'error_handler'));
-            $buf = fread($this->sock, ($n - $read));
+            $buffer = fread($this->sock, ($len - $read));
             restore_error_handler();
 
-            if (false === $buf) {
+            if (false === $buffer) {
                 echo '--------broken-read-data';
                 $this->flush();
                 break;
             }
 
-            if ($buf === 0 && feof($this->sock)) {
+            if ($buffer === '' && feof($this->sock)) {
                 echo '--------broken-read-2';
                 $this->flush();
                 break;
@@ -228,7 +229,7 @@ class StreamIO extends AbstractIO
             
             
 
-            if ($buf === '') {
+            if ($buffer === '') {
                 if ($this->canDispatchPcntlSignal) {
                     // prevent cpu from being consumed while waiting
                     
@@ -241,18 +242,17 @@ class StreamIO extends AbstractIO
                 continue;
             }
 
-            $read += mb_strlen($buf, 'ASCII');
-            $res .= $buf;
-
-            $this->last_read = microtime(true);
+            $read += mb_strlen($buffer, 'ASCII');
+            $data .= $buffer;
         }
 
-        if (mb_strlen($res, 'ASCII') != $n) {
+        if (mb_strlen($data, 'ASCII') != $len) {
             throw new AMQPRuntimeException("Error reading data. Received " .
-                mb_strlen($res, 'ASCII') . " instead of expected $n bytes");
+                mb_strlen($data, 'ASCII') . " instead of expected $len bytes");
         }
 
-        return $res;
+        $this->last_read = microtime(true);
+        return $data;
     }
 
 
@@ -260,10 +260,9 @@ class StreamIO extends AbstractIO
     public function write($data)
     {
         $written = 0;
+        $len = mb_strlen($data, 'ASCII');
         
-        while ($written !== mb_strlen($data, 'ASCII')) {
-            
-
+        while ($written < $len) {
             echo '+w';
             $this->flush();
             
@@ -278,11 +277,11 @@ class StreamIO extends AbstractIO
             }
 
             set_error_handler(array($this, 'error_handler'));
-            $written = fwrite($this->sock, $data);
+            $buffer = fwrite($this->sock, $data);
             restore_error_handler();
 
 
-            if (false === $written) {
+            if (false === $buffer) {
                 echo '--------broken-data';
                 $meta = stream_get_meta_data($this->sock);
                 var_dump($this->last_error);
@@ -291,7 +290,7 @@ class StreamIO extends AbstractIO
                 throw new AMQPRuntimeException("Error sending data");
             }
 
-            if ($written === 0 && feof($this->sock)) {
+            if ($buffer === 0 && feof($this->sock)) {
                 echo '--------broken-write';
                 $meta = stream_get_meta_data($this->sock);
                 var_dump($this->last_error);
@@ -308,23 +307,13 @@ class StreamIO extends AbstractIO
                 $this->flush();
                 throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
             }
-            /*
-            $len = $len - $written;
-            if ($len > 0) {
-                $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
-                continue;
-            } else {
-                $this->last_write = microtime(true);
-                break;
-            }
-            */
-           
 
-            $data = mb_substr($data, $written, mb_strlen($data, 'ASCII') - $written, 'ASCII');
-            echo '-part.'.$written.'-';
-            $this->flush();
+            $written += mb_strlen($buffer, 'ASCII');
+            $data = mb_substr($data, $buffer, mb_strlen($data, 'ASCII') - $buffer, 'ASCII');
         }
+
         $this->last_write = microtime(true);
+        return;
     }
 
     public function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null)
