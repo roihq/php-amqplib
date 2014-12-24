@@ -139,7 +139,7 @@ class StreamIO extends AbstractIO
                 )
             );
         }
-        var_dump(stream_socket_get_name($this->sock, true));
+        //var_dump(stream_socket_get_name($this->sock, true));
 
 
 
@@ -185,58 +185,29 @@ class StreamIO extends AbstractIO
         $data = '';
 
         while ($read < $len) {
-            echo '+r';
-            $this->flush();
-
             $this->check_heartbeat();
 
-            
-
-            if (feof($this->sock)) {
-                echo '--------broken-read-1';
-                $this->flush();
-                break;
+            if (!is_resource($this->sock) || feof($this->sock)) {
+                throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
-
-            if (!is_resource($this->sock)) {
-                echo '--------broken-pipe-read';
-                $this->flush();
-                break;
-            }
-
 
             set_error_handler(array($this, 'error_handler'));
             $buffer = fread($this->sock, ($len - $read));
             restore_error_handler();
 
-            if (false === $buffer) {
-                echo '--------broken-read-data';
-                $this->flush();
-                break;
+            if ($buffer === false) {
+                throw new AMQPRuntimeException("Error receiving data");
             }
-
-            if ($buffer === '' && feof($this->sock)) {
-                echo '--------broken-read-2';
-                $this->flush();
-                break;
-            }
-
-            
-
-
-
-
-            
-            
 
             if ($buffer === '') {
                 if ($this->canDispatchPcntlSignal) {
                     // prevent cpu from being consumed while waiting
                     
-                    echo '+b';
-                    $this->flush();
-                    $this->select(null, null);
+                    //echo '+b';
+                    //$this->flush();
                     //sleep(1);
+                    
+                    $this->select(null, null);
                     pcntl_signal_dispatch();
                 }
                 continue;
@@ -263,16 +234,8 @@ class StreamIO extends AbstractIO
         $len = mb_strlen($data, 'ASCII');
         
         while ($written < $len) {
-            echo '+w';
-            $this->flush();
-            
-
-                   
-
 
             if (!is_resource($this->sock)) {
-                echo '--------broken-pipe';
-                $this->flush();
                 throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
 
@@ -280,31 +243,15 @@ class StreamIO extends AbstractIO
             $buffer = fwrite($this->sock, $data);
             restore_error_handler();
 
-
-            if (false === $buffer) {
-                echo '--------broken-data';
-                $meta = stream_get_meta_data($this->sock);
-                var_dump($this->last_error);
-                var_dump($meta);
-                $this->flush();
+            if ($buffer === false) {
                 throw new AMQPRuntimeException("Error sending data");
             }
 
             if ($buffer === 0 && feof($this->sock)) {
-                echo '--------broken-write';
-                $meta = stream_get_meta_data($this->sock);
-                var_dump($this->last_error);
-                var_dump($meta);
-                $this->flush();
                 throw new AMQPRuntimeException("Broken pipe or closed connection");
             }
 
             if ($this->timed_out()) {
-                echo '--------timed-out';
-                $meta = stream_get_meta_data($this->sock);
-                var_dump($this->last_error);
-                var_dump($meta);
-                $this->flush();
                 throw new AMQPTimeoutException("Error sending data. Socket connection timed out");
             }
 
@@ -340,8 +287,8 @@ class StreamIO extends AbstractIO
 
     public function flush()
     {
-        @ob_flush();
-        flush();
+        //@ob_flush();
+        //flush();
     }
 
 
