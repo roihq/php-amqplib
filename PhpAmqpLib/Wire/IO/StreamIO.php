@@ -74,16 +74,17 @@ class StreamIO extends AbstractIO
     /**
      * @var bool
      */
-    private $canDispatchPcntlSignal;
+    private $canSelectNull;
 
     /**
      * @var bool
      */
-    private $canSelectNull;
+    private $canDispatchPcntlSignal;
 
 
     public function __construct($host, $port, $connection_timeout, $read_write_timeout, $context = null, $keepalive = false, $heartbeat = 0)
     {
+        $this->protocol = 'tcp';
         $this->host = $host;
         $this->port = $port;
         $this->connection_timeout = $connection_timeout;
@@ -91,21 +92,19 @@ class StreamIO extends AbstractIO
         $this->context = $context;
         $this->keepalive = $keepalive;
         $this->heartbeat = $heartbeat;
+        $this->canSelectNull = true;
         $this->canDispatchPcntlSignal = extension_loaded('pcntl') && function_exists('pcntl_signal_dispatch')
             && (defined('AMQP_WITHOUT_SIGNALS') ? !AMQP_WITHOUT_SIGNALS : true);
-       
+        
         if (is_null($this->context)) {
-            $this->protocol = 'tcp';
             $this->context = stream_context_create();
         } else {
             $this->protocol = 'ssl';
+             // php bugs 41631 & 65137 prevent select null from working on ssl streams
+            if (PHP_VERSION_ID < 50436) {
+                $this->canSelectNull = false;
+            }
         }
-
-        // 5.4.36
-        // bugs.php.net/41631 5.4.33
-        // bugs.php.net/65137 5.4.34
-
-        $this->canSelectNull = true;
     }
 
     /**
@@ -162,7 +161,6 @@ class StreamIO extends AbstractIO
             throw new AMQPIOException('Timeout could not be set');
         }
 
-        
         // php cannot capture signals while streams are blocking
         if ($this->canDispatchPcntlSignal) {
             stream_set_blocking($this->sock, 0);
