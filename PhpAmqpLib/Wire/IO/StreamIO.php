@@ -213,10 +213,11 @@ class StreamIO extends AbstractIO
                     // prevent cpu from being consumed while waiting
                     if ($this->canSelectNull) {
                         $this->select(null, null);
+                        pcntl_signal_dispatch();
                     } else {
-                        usleep(200000);
+                        usleep(100000);
+                        pcntl_signal_dispatch();
                     }
-                    pcntl_signal_dispatch();
                 }
                 continue;
             }
@@ -278,7 +279,7 @@ class StreamIO extends AbstractIO
     {
         $this->last_error = compact('errno', 'errstr', 'errfile', 'errline', 'errcontext');
 
-        // fwrite warning that stream isn't ready
+        // fwrite notice that the stream isn't ready
         if (strstr($errstr, 'Resource temporarily unavailable')) {
              // it's allowed to retry
              return;

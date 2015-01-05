@@ -384,12 +384,11 @@ class AbstractConnection extends AbstractChannel
 
     public function write($data)
     {
-        /*
         if ($this->debug) {
             MiscHelper::debug_msg("< [hex]:\n"
                 . MiscHelper::hexdump($data, $htmloutput = false, $uppercase = true, $return = true));
         }
-        */
+
         $this->getIO()->write($data);
     }
 
