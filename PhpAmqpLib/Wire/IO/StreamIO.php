@@ -133,7 +133,7 @@ class StreamIO extends AbstractIO
             $errno,
             $errstr,
             $this->connection_timeout,
-            STREAM_CLIENT_CONNECT | STREAM_CLIENT_ASYNC_CONNECT,
+            STREAM_CLIENT_CONNECT,
             $this->context
         );
         
